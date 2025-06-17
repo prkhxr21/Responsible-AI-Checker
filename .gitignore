@@ -1,0 +1,13 @@
+
+.env
+.secrets
+*.key
+config.ini
+credentials.json
+
+.streamlit/secrets.toml
+
+__pycache__/
+*.py[cod]
+venv/
+env/
