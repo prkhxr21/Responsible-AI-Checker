@@ -10,7 +10,6 @@ if not st.session_state.get("authenticated", False):
     st.error("You must be logged in to access this page.")
     st.stop()
 
-# 🔒 Optional: Display user info or logout button
 st.sidebar.success(f"Logged in as {st.session_state.get('user_name', 'User')}")
 if st.sidebar.button("Logout"):
     st.session_state.authenticated = False
@@ -33,11 +32,9 @@ from io import BytesIO
 import pdfplumber
 import chardet
 
-# Load environment variables
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Initialize PDF class
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 12)
@@ -51,7 +48,6 @@ class PDF(FPDF):
 
 st.title("LLM Response Evaluator")
 
-# Define parameter sets
 RAI_PARAMETERS = {
     "fairness": "Fairness",
     "transparency": "Transparency",
@@ -70,7 +66,6 @@ CONTENT_PARAMETERS = {
     "explainability": "Explainability"
 }
 
-# Initialize session state
 if 'rai_checked' not in st.session_state:
     st.session_state.rai_checked = True
 if 'content_checked' not in st.session_state:
@@ -90,7 +85,6 @@ if 'uploaded_file' not in st.session_state:
 if 'evaluations' not in st.session_state:
     st.session_state.evaluations = []
 
-# Callback functions
 def update_rai():
     st.session_state.rai_checked = not st.session_state.rai_checked
 
@@ -137,8 +131,7 @@ def evaluate_response(prompt, response):
         )
         evaluation_response = response.choices[0].message.content
         evaluation_data = json.loads(evaluation_response)
-        
-        # Ensure all parameters have values and reasons
+
         for param in param_keys:
             if param not in evaluation_data:
                 evaluation_data[param] = "N"
@@ -154,18 +147,12 @@ def evaluate_response(prompt, response):
 def reset_evaluations():
     st.session_state.evaluations = []
 
-# File processing functions
 def extract_text_from_file(file):
     text = ""
     file_extension = file.name.split('.')[-1].lower()
     
     try:
         if file_extension == 'pdf':
-            # Option 1: PyPDF2 (basic)
-            # reader = PyPDF2.PdfReader(file)
-            # text = "\n".join([page.extract_text() for page in reader.pages])
-            
-            # Option 2 (better): Use pdfplumber if available
             with pdfplumber.open(file) as pdf:
                 text = "\n".join([page.extract_text() for page in pdf.pages])
             
@@ -175,9 +162,8 @@ def extract_text_from_file(file):
             
         elif file_extension == 'txt':
             raw_data = file.read()
-            # Detect encoding
             encoding = chardet.detect(raw_data)['encoding']
-            text = raw_data.decode(encoding or 'utf-8')  # Fallback to UTF-8
+            text = raw_data.decode(encoding or 'utf-8') 
             
         else:
             st.error("Unsupported file format. Please upload a PDF, DOCX, or TXT file.")
@@ -185,9 +171,6 @@ def extract_text_from_file(file):
             
     except Exception as e:
         st.error(f"Error reading file: {str(e)}")
-        # For debugging:
-        # import traceback
-        # st.error(traceback.format_exc())
         return None
     
     return text
@@ -196,31 +179,28 @@ def parse_prompts_responses(text):
     entries = []
     current_prompt = None
     current_response = None
-    is_prompt = False  # Track if we're reading a prompt
+    is_prompt = False 
     
     for line in text.split('\n'):
         line = line.strip()
         if not line:
-            continue  # Skip empty lines
+            continue 
         
-        # Check for "Prompt:" or "Response:"
         if line.lower().startswith('prompt:'):
-            if current_prompt and current_response:  # Save previous pair
+            if current_prompt and current_response: 
                 entries.append((current_prompt, current_response))
-            current_prompt = line[7:].strip()  # Remove "Prompt:"
+            current_prompt = line[7:].strip() 
             current_response = None
-            is_prompt = True  # Now reading prompt lines
+            is_prompt = True 
         elif line.lower().startswith('response:'):
-            current_response = line[9:].strip()  # Remove "Response:"
-            is_prompt = False  # Stop reading prompt
+            current_response = line[9:].strip() 
+            is_prompt = False
         else:
-            # Accumulate lines into prompt OR response
             if is_prompt:
-                current_prompt += " " + line  # Merge prompt lines
+                current_prompt += " " + line 
             elif current_response is not None:
-                current_response += " " + line  # Merge response lines
+                current_response += " " + line 
     
-    # Add the last pair if it exists
     if current_prompt and current_response:
         entries.append((current_prompt, current_response))
     
@@ -255,7 +235,6 @@ def generate_pdf_report(evaluations, ai_results=None):
     pdf = PDF()
     pdf.add_page()
     
-    # Configure layout
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_margins(left=10, top=10, right=10)
     pdf.set_font("Arial", size=11)
@@ -264,7 +243,6 @@ def generate_pdf_report(evaluations, ai_results=None):
         """Sanitize text while preserving readability"""
         if not isinstance(text, str):
             text = str(text)
-        # Replace problematic characters but preserve spaces and line breaks
         return text.encode('ascii', 'replace').decode('ascii').replace('?', ' ')
 
     def write_wrapped_text(pdf, text, indent=0, line_height=5):
@@ -276,7 +254,7 @@ def generate_pdf_report(evaluations, ai_results=None):
         
         for word in words:
             test_line = f"{current_line} {word}".strip()
-            if pdf.get_string_width(test_line) < (190 - indent):  # Page width - margins
+            if pdf.get_string_width(test_line) < (190 - indent): 
                 current_line = test_line
             else:
                 lines.append(current_line)
@@ -286,34 +264,29 @@ def generate_pdf_report(evaluations, ai_results=None):
             
         for line in lines:
             if indent > 0:
-                pdf.cell(indent, line_height, "", 0, 0)  # Add indentation
+                pdf.cell(indent, line_height, "", 0, 0)
             pdf.multi_cell(0, line_height, line, 0, 1)
-    
-    # Title
+
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(0, 10, "LLM Response Evaluation Report", 0, 1, 'C')
     pdf.ln(10)
     
     for idx, (prompt, response, evaluation) in enumerate(evaluations, 1):
-        # Evaluation header
         pdf.set_font("Arial", 'B', 12)
         pdf.cell(0, 10, f"Evaluation #{idx}", 0, 1)
         pdf.set_font("Arial", size=11)
-        
-        # Prompt section
+
         pdf.set_font("", 'B')
         pdf.cell(0, 5, "Prompt:", 0, 1)
         pdf.set_font("", '')
         write_wrapped_text(pdf, prompt, indent=10)
         
-        # Response section
         pdf.set_font("", 'B')
         pdf.cell(0, 5, "Response:", 0, 1)
         pdf.set_font("", '')
         write_wrapped_text(pdf, response, indent=10)
         pdf.ln(5)
         
-        # AI Detection results
         if ai_results and idx-1 < len(ai_results) and ai_results[idx-1]:
             ai_result = ai_results[idx-1]
             pdf.set_font("", 'B')
@@ -331,8 +304,7 @@ def generate_pdf_report(evaluations, ai_results=None):
             pdf.set_text_color(0, 0, 0)  # Black
             write_wrapped_text(pdf, f"Reason: {ai_result.get('reason', 'No reason provided')}", indent=10)
             pdf.ln(5)
-        
-        # Parameter evaluations
+
         pdf.set_font("", 'B')
         pdf.cell(0, 5, "Parameter Evaluations:", 0, 1)
         pdf.set_font("", '', 11)
@@ -343,13 +315,11 @@ def generate_pdf_report(evaluations, ai_results=None):
                 evaluation_result = result
                 reason = evaluation.get(f"{param}_reason", "No reason provided")
                 
-                # Set fill color
                 if evaluation_result == "Y":
-                    pdf.set_fill_color(46, 204, 113)  # Green
+                    pdf.set_fill_color(46, 204, 113) 
                 else:
-                    pdf.set_fill_color(231, 76, 60)   # Red
+                    pdf.set_fill_color(231, 76, 60) 
                 
-                # Parameter row
                 pdf.cell(50, 8, safe_text(param_name), 1, 0, 'L', 1)
                 pdf.cell(15, 8, safe_text(evaluation_result), 1, 0, 'C', 1)
                 pdf.multi_cell(0, 8, safe_text(reason), 1, 1)
@@ -358,7 +328,6 @@ def generate_pdf_report(evaluations, ai_results=None):
     
     return pdf.output(dest='S').encode('latin-1', 'replace')
 
-# UI Elements
 t1, t2= st.tabs(["Manual Entry", "File Upload"])
 
 with t1:
@@ -373,7 +342,6 @@ with t2:
         on_change=reset_evaluations
     )
 
-# Add AI detection checkbox
 st.session_state.check_ai = st.checkbox(
     "Check if response is AI-generated",
     value=st.session_state.check_ai,
@@ -415,7 +383,6 @@ if not st.session_state.rai_checked and not st.session_state.content_checked:
 
 if st.button("Evaluate"):
     if upload_option == "File Upload" and st.session_state.uploaded_file:
-        # Process uploaded file
         file_text = extract_text_from_file(st.session_state.uploaded_file)
         if file_text:
             entries = parse_prompts_responses(file_text)
@@ -432,8 +399,6 @@ if st.button("Evaluate"):
                         st.session_state.evaluations.append((prompt, response, evaluation))
                     progress_bar.progress((i + 1) / total_entries)
                 ai_results = []
-    
-                # Perform AI detection if enabled
                 if st.session_state.check_ai:
                     if upload_option == "File Upload" and st.session_state.uploaded_file:
                         entries = parse_prompts_responses(extract_text_from_file(st.session_state.uploaded_file))
@@ -441,12 +406,9 @@ if st.button("Evaluate"):
                             ai_results.append(check_ai_generation(response))
                     elif st.session_state.response:
                         ai_results.append(check_ai_generation(st.session_state.response))
-                # Generate PDF report
                 if st.session_state.evaluations:
                     try:
                         pdf_bytes = generate_pdf_report(st.session_state.evaluations)
-        
-                        # Create download button
                         st.download_button(
                             label="Download Evaluation Report",
                             data=pdf_bytes,
@@ -457,8 +419,6 @@ if st.button("Evaluate"):
                     except Exception as e:
                         st.error(f"Failed to generate PDF: {str(e)}")
                         st.error("Please check your input for special characters and try again")
-                    
-                    # Show preview of evaluations
                     
                     st.markdown("**Report Preview (PDF contains full details)**")
                     for idx, (prompt, response, evaluation) in enumerate(st.session_state.evaluations, 1):
@@ -490,13 +450,10 @@ if st.button("Evaluate"):
                                         unsafe_allow_html=True
                                     )
     else:
-        # Manual evaluation
         if st.session_state.prompt and st.session_state.response:
             evaluation = evaluate_response(st.session_state.prompt, st.session_state.response)
             if evaluation:
                 st.session_state.evaluations = [(st.session_state.prompt, st.session_state.response, evaluation)]
-                
-                # # Generate PDF for single evaluation
                 # pdf_path = generate_pdf_report(st.session_state.evaluations)
                 # with open(pdf_path, "rb") as f:
                 #     pdf_bytes = f.read()
@@ -535,7 +492,6 @@ if st.button("Evaluate"):
                             st.info(f"Reason: {ai_result.get('reason', 'No reason provided')}")
                     except Exception as e:
                         st.warning(f"AI detection failed: {str(e)}")
-                # Show evaluation results
                 st.subheader("Evaluation Results")
                 for param in st.session_state.rai_params + st.session_state.content_params:
                     param_key = param.lower().replace(' ', '_')
