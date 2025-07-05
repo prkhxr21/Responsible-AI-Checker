@@ -8,15 +8,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 if not st.session_state.get("authenticated", False):
     st.error("You must be logged in to access this page.")
+    if st.button("Log In"):
+        st.switch_page("pages/auth.py")
     st.stop()
 
-# 🔒 Optional: Display user info or logout button
-st.sidebar.success(f"Logged in as {st.session_state.get('user_name', 'User')}")
-if st.sidebar.button("Logout"):
+st.success(f"Logged in as {st.session_state.get('user_name', 'User')}")
+if st.button("Logout"):
     st.session_state.authenticated = False
     st.session_state.user_email = None
     st.session_state.user_name = None
     st.rerun()
+
 import openai
 import json
 import os

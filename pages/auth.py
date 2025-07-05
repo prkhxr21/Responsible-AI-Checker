@@ -19,7 +19,6 @@ import time
 
 # Load environment variables
 load_dotenv()
-
 # Initialize MongoDB connection
 client = MongoClient(os.getenv("MONGO_URI"))
 db = client["auth_system"]
