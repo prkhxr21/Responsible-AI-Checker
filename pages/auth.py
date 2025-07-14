@@ -14,7 +14,7 @@ import secrets
 import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, unquote, urlencode
 import time
 
 load_dotenv()
@@ -112,13 +112,13 @@ def signup():
 def verify_email():
     query_params = st.query_params
     st.write("Full Query Params:", query_params)
-    email = query_params.get("email", "")
-    token = query_params.get("token", "")
+    email = unquote(query_params.get("email", [None])[0]).lower().strip()
+    token = unquote(query_params.get("token", [None])[0]).strip()
     st.write("Debug Info:")
     st.write("Email from URL:", email)
     st.write("Token from URL:", token)
     
-    if not email or not token or len(token)<10:
+    if not email or not token:
         st.error("Missing verification parameters")
         return
     
@@ -155,7 +155,8 @@ def verify_email():
         st.balloons()
         
         st.write("Redirecting to login page...")
-        time.sleep(5)
+        time.sleep(3)
+        st.session_state.verified = True
         st.query_params.clear()
         st.rerun()
         
@@ -190,9 +191,8 @@ def main():
     st.title("Welcome to AI Checker")
     
     query_params = st.query_params
-    if all(key in query_params for key in ["email", "token"]):
-        verify_email()
-        return
+    if "email" in query_params and "token" in query_params:
+        st.switch_page("pages/verify.py")
     if st.query_params.get("page") == "auth":
         st.switch_page("pages/auth.py")
     if st.query_params.get("page") == "checker":
@@ -200,10 +200,8 @@ def main():
         
     else:
         tab1, tab2 = st.tabs(["Login", "Sign Up"])
-        
         with tab1:
             login()
-        
         with tab2:
             signup()
 

@@ -17,7 +17,7 @@ if st.button("Logout"):
     st.session_state.authenticated = False
     st.session_state.user_email = None
     st.session_state.user_name = None
-    st.rerun()
+    st.switch_page("./app.py")
 
 import openai
 import json
