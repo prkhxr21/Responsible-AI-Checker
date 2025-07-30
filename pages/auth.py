@@ -42,7 +42,7 @@ def send_verification_email(email, name, token):
     safe_email = quote(email)
     safe_token = quote(token)
     
-    verification_link = f"http://(os.getenv("REDIRECT_URL"))/?email={safe_email}&token={safe_token}"
+    verification_link = f"http://{os.getenv('REDIRECT_URL')}/?email={safe_email}&token={safe_token}"
     
     subject = "Please verify your email"
     body = f"""
