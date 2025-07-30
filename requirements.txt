@@ -2,3 +2,8 @@ pymongo
 streamlit
 dotenv
 openai
+fpdf
+pypdf2
+pdfplumber
+chardet
+reportlab
