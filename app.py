@@ -81,7 +81,7 @@ def verify_email():
         
     except Exception as e:
         st.error(f"Verification failed: {str(e)}")
-st.title("Welcome to AI Checker!")
+st.title("Welcome to AI Inspector!")
 
 query_params = st.query_params
 if "email" in query_params and "token" in query_params:
