@@ -188,7 +188,7 @@ def logout():
     st.success("You have been logged out.")
 
 def main():
-    st.title("Welcome to AI Checker")
+    st.title("Welcome to FairAI")
     
     query_params = st.query_params
     if "email" in query_params and "token" in query_params:
@@ -207,3 +207,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
